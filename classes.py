@@ -101,10 +101,10 @@ class DMBReadManager:
     Класс для записи данных в БД
     """
 
-    def __init__(self, word):
+    def __init__(self):
+        self.word = None
         self.conn = psycopg2.connect(host="localhost", database="parsing_hh_company", user="postgres",
                                      password="alexia1456")
-        self.word = word
 
     def get_companies_and_vacancies_count(self):
         """
@@ -122,7 +122,7 @@ class DMBReadManager:
     def get_all_vacancies(self):
         """
         Получает список всех вакансий с указанием названия компании,
-        названия вакансии и зарплаты и ссылки на вакансию
+        названия вакансии и зарплаты и ссылки на вакансию.
         """
         cur = self.conn.cursor()
         cur.execute("SELECT company.company_name, vacancy_name, payment_from, payment_to, url FROM company "
@@ -161,11 +161,12 @@ class DMBReadManager:
         self.conn.close()
         return rows
 
-    def get_vacancies_with_keyword(self):
+    def get_vacancies_with_keyword(self, word):
         """
         Получает список всех вакансий,
-        в названии которых содержатся переданные в метод слова, например python
+        в названии которых содержатся переданные в метод слова, например python.
         """
+        self.word = word
         cur = self.conn.cursor()
         cur.execute(f"SELECT * FROM vacancy WHERE vacancy_name LIKE '%{self.word}%' ")
         rows = cur.fetchall()
