@@ -23,6 +23,11 @@ class HeadHunterAPI:
         self.vacancy_list = None
 
     def parse_vacancies(self):
+        """
+        Функция использует api для парсинга
+        сайта hh.ru.
+        Возвращает список вакансий
+        """
 
         base_url = 'https://api.hh.ru/'
         endpoint = 'vacancies'
@@ -67,6 +72,7 @@ class HeadHunterAPI:
 class DMBWriteManager:
     """
     Класс для записи данных в БД
+    При создании экземпляра в него приходит аргумент - список вакансий
     """
 
     def __init__(self, vacancy_list):
@@ -74,15 +80,14 @@ class DMBWriteManager:
 
     def write_to_database(self):
         """
-        Метод записи в базу данных
+        Метод для записи данных из списка вакансий в базу данных
         """
         with psycopg2.connect(host="localhost", database="parsing_hh_company", user="postgres",
                               password="alexia1456") as conn:
-
             with conn.cursor() as cur:
                 cur.execute("TRUNCATE TABLE vacancy ")
-                for item in self.vacancy_list:
 
+                for item in self.vacancy_list:
                     cur.execute("INSERT INTO company (company_id, company_name) VALUES (%s, %s)"
                                 "ON CONFLICT (company_id) DO NOTHING;",
                                 (int(item["company_id"]), item["company_name"]))
@@ -98,7 +103,7 @@ class DMBWriteManager:
 
 class DMBReadManager:
     """
-    Класс для записи данных в БД
+    Класс для получения данных из БД
     """
 
     def __init__(self):
@@ -108,21 +113,26 @@ class DMBReadManager:
 
     def get_companies_and_vacancies_count(self):
         """
-        Получает список всех компаний и количество вакансий у каждой компании.
+        Подключается к БД.
+        Возвращает список всех компаний и количество вакансий у каждой компании.
         """
         cur = self.conn.cursor()
         cur.execute("SELECT company_name, COUNT(vacancy.company_id) FROM company "
                     "INNER JOIN vacancy USING(company_id) "
                     "GROUP BY company_name ")
         rows = cur.fetchall()
+
         cur.close()
         self.conn.close()
-        return rows
+
+        company = '\n'.join([f'{item[0]}: {item[1]} вакансий' for item in rows])
+        return company
 
     def get_all_vacancies(self):
         """
-        Получает список всех вакансий с указанием названия компании,
-        названия вакансии и зарплаты и ссылки на вакансию.
+        Подключается к БД.
+        Возвращает список всех вакансий с указанием названия компании,
+        названия вакансии и зарплаты и ссылки на вакансию
         """
         cur = self.conn.cursor()
         cur.execute("SELECT company.company_name, vacancy_name, payment_from, payment_to, url FROM company "
@@ -132,11 +142,14 @@ class DMBReadManager:
         rows = cur.fetchall()
         cur.close()
         self.conn.close()
-        return rows
+        vacancy = '\n'.join([f'Компания: {item[0]}. Вакансия: {item[1]}. Заработная плата от {item[2]}'
+                             f' до {item[3]} руб. Ссылка на вакансию: {item[4]}\n' for item in rows])
+        return vacancy
 
     def get_avg_salary(self):
         """
-        Получает среднюю зарплату по вакансиям.
+        Подключается к БД.
+        Возвращает среднюю зарплату по вакансиям.
         """
         cur = self.conn.cursor()
         cur.execute("SELECT ROUND(AVG(payment_from)) FROM vacancy "
@@ -145,31 +158,50 @@ class DMBReadManager:
         cur.execute("SELECT ROUND(AVG(payment_to)) FROM vacancy "
                     "WHERE payment_to > 0 ")
         rows_2 = cur.fetchall()
+
         cur.close()
         self.conn.close()
-        return rows_1, rows_2
+
+        payment_from_avg = ''.join(char for char in str(rows_1) if char.isdigit())
+        payment_to_avg = ''.join(char for char in str(rows_2) if char.isdigit())
+
+        return f'Минимальная средняя заработная плата: {payment_from_avg} руб.\n' \
+               f'Максимальная  средняя заработная плата: {payment_to_avg} руб.'
 
     def get_vacancies_with_higher_salary(self):
         """
-        Получает список всех вакансий, у которых зарплата выше средней по всем вакансиям.
+        Подключается к БД.
+        Возвращает список всех вакансий, у которых зарплата выше средней по всем вакансиям.
         """
         cur = self.conn.cursor()
         cur.execute("SELECT * FROM vacancy WHERE payment_to > (SELECT AVG(payment_to)"
                     "FROM vacancy WHERE payment_to > 0) ")
         rows = cur.fetchall()
+
         cur.close()
         self.conn.close()
-        return rows
+
+        vacancy = '\n'.join([f'Вакансия: {item[1]}. Заработная плата от {item[2]}'
+                             f' до {item[3]} руб. Ссылка на вакансию: {item[4]}\n' for item in rows])
+        return vacancy
 
     def get_vacancies_with_keyword(self, word):
         """
-        Получает список всех вакансий,
-        в названии которых содержатся переданные в метод слова, например python.
+        Подключается к БД.
+        Возвращает список всех вакансий,
+        в названии которых содержатся переданные в метод слова, например python
         """
         self.word = word
         cur = self.conn.cursor()
         cur.execute(f"SELECT * FROM vacancy WHERE vacancy_name LIKE '%{self.word}%' ")
         rows = cur.fetchall()
+
         cur.close()
         self.conn.close()
-        return rows
+
+        if not rows:
+            return 'По вашему запросу найдено 0 вакансий.'
+        else:
+            vacancy = '\n'.join([f'Вакансия: {item[1]}. Заработная плата от {item[2]}'
+                                 f' до {item[3]} руб. Ссылка на вакансию: {item[4]}\n' for item in rows])
+            return vacancy
