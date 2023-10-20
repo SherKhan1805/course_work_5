@@ -78,6 +78,22 @@ class DMBWriteManager:
     def __init__(self, vacancy_list):
         self.vacancy_list = vacancy_list
 
+    def create_table_to_database(self):
+        """
+        Метод для создания таблиц в БД с проверкой на то, что таблица уже создана
+        """
+        try:
+            with psycopg2.connect(host="localhost", database="parsing_hh_company", user="postgres",
+                                  password="alexia1456") as conn:
+                with conn.cursor() as cur:
+                    cur.execute("CREATE TABLE company (company_id integer, company_name varchar);")
+                    cur.execute("CREATE TABLE company (company_id integer, vacancy_name varchar, payment_from integer, "
+                                "payment_to integer, url varchar);")
+
+                    conn.commit()
+        except psycopg2.errors.DuplicateTable:
+            print("Таблица уже создана. Продолжение работы. ")
+
     def write_to_database(self):
         """
         Метод для записи данных из списка вакансий в базу данных

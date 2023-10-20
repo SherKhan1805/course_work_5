@@ -15,6 +15,7 @@ def user_interaction():
     prof_list = headhunter.parse_vacancies()
 
     write_manager = DMBWriteManager(prof_list)
+    write_manager.create_table_to_database()
     write_manager.write_to_database()
 
     read_manager = DMBReadManager()
