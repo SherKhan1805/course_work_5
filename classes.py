@@ -89,6 +89,11 @@ class DMBWriteManager:
                     cur.execute("CREATE TABLE company (company_id integer, company_name varchar);")
                     cur.execute("CREATE TABLE vacancy (company_id integer, vacancy_name varchar, payment_from integer, "
                                 "payment_to integer, url varchar);")
+                    cur.execute("ALTER TABLE company ADD CONSTRAINT unique_company_id UNIQUE(company_id);")
+                    cur.execute("ALTER TABLE company ADD CONSTRAINT unique_company_name UNIQUE (company_name);")
+                    cur.execute("ALTER TABLE vacancy ADD CONSTRAINT unique_vac_url UNIQUE (url);")
+                    cur.execute("ALTER TABLE vacancy ADD CONSTRAINT fk_unique_company_id FOREIGN KEY (company_id) "
+                                "REFERENCES company (company_id);")
 
                     conn.commit()
         except psycopg2.errors.DuplicateTable:
