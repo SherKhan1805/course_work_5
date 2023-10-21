@@ -87,7 +87,7 @@ class DMBWriteManager:
                                   password="alexia1456") as conn:
                 with conn.cursor() as cur:
                     cur.execute("CREATE TABLE company (company_id integer, company_name varchar);")
-                    cur.execute("CREATE TABLE company (company_id integer, vacancy_name varchar, payment_from integer, "
+                    cur.execute("CREATE TABLE vacancy (company_id integer, vacancy_name varchar, payment_from integer, "
                                 "payment_to integer, url varchar);")
 
                     conn.commit()
